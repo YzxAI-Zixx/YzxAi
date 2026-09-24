@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>YZX AI</title>
+<style>
+  :root {
+    --bg: #000000;
+    --bg-sidebar: #0a0a0a;
+    --bg-card: #111111;
+    --bg-card-2: #161616;
+    --bg-input: #0f0f0f;
+    --bubble-user: #1f1f1f;
+    --bubble-user-text: #f0f0f0;
+    --bubble-ai: #141414;
+    --bubble-ai-text: #e8e8e8;
+    --text: #f0f0f0;
+    --text-muted: #7a7a7a;
+    --border: #1a1a1a;
+    --border-2: #262626;
+    --accent: #ffffff;
+    --accent-glow: rgba(255,255,255,0.15);
+    --gold: #fbbf24;
+  }
+  [data-theme="light"] {
+    --bg: #fafafa;
+    --bg-sidebar: #ffffff;
+    --bg-card: #ffffff;
+    --bg-card-2: #f5f5f5;
+    --bg-input: #ffffff;
+    --bubble-user: #1f1f1f;
+    --bubble-user-text: #ffffff;
+    --bubble-ai: #f0f0f0;
+    --bubble-ai-text: #1a1a1a;
+    --text: #0a0a0a;
+    --text-muted: #6b6b6b;
+    --border: #ebebeb;
+    --border-2: #dcdcdc;
+    --accent: #0a0a0a;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
+  html, body { height:100%; background:var(--bg); color:var(--text); overflow:hidden; overscroll-behavior:none; }
+  #app { display:flex; height:100vh; height:100dvh; width:100%; overflow:hidden; }
+
+  .sidebar {
+    width: 68px;
+    background: var(--bg-sidebar);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; align-items: center;
+    padding: 10px 6px; gap: 4px;
+    overflow-y: auto; flex-shrink: 0; scrollbar-width: none;
+  }
+  .sidebar::-webkit-scrollbar { display: none; }
+  .nav-item {
+    width: 52px; height: 52px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 2px; border-radius: 12px; cursor: pointer;
+    color: var(--text-muted); transition: all 0.15s;
+    user-select: none; flex-shrink: 0;
+    position: relative;
+  }
+  .nav-item .nav-icon { font-size: 20px; line-height: 1; }
+  .nav-item:hover { background: var(--bg-card); color: var(--text); }
+  .nav-item.active { background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.03)); color: var(--text); border: 1px solid var(--border-2); }
+  [data-theme="light"] .nav-item.active { background: #0a0a0a; color: #fff; }
+  .nav-item[data-locked="1"] { opacity: 0.4; }
+  .nav-item[data-locked="1"]::after { content: '🔒'; position: absolute; top: 4px; right: 4px; font-size: 9px; }
+
+  .pro-badge {
+    width: 52px; padding: 8px 4px;
+    background: var(--bg-card); border: 1px solid var(--border-2);
+    border-radius: 12px;
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    cursor: pointer; margin-top: 6px; flex-shrink: 0;
+  }
+  .pro-badge .crown { color: var(--gold); font-size: 16px; }
+  .pro-badge .pro-text { font-size: 9px; font-weight: 700; color: var(--text); text-align: center; line-height: 1.1; }
+  .pro-badge .up-btn { margin-top: 3px; padding: 4px 8px; background: var(--text); color: var(--bg); border: none; border-radius: 6px; font-size: 9px; font-weight: 700; cursor: pointer; width: 100%; }
+  [data-theme="light"] .pro-badge .up-btn { background: #0a0a0a; color: #fff; }
+
+  .side-profile {
+    width: 52px; height: 52px;
+    background: var(--bg-card); border: 1px solid var(--border-2);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; margin-top: auto; flex-shrink: 0;
+    position: relative; font-size: 22px;
+  }
+  .side-profile .owner-dot {
+    position: absolute; bottom: -1px; right: -1px;
+    width: 14px; height: 14px;
+    background: var(--gold); border: 2px solid var(--bg-sidebar);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 7px; color: #000; font-weight: 900;
+  }
+
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: var(--bg); min-width: 0; position: relative; }
+  #chat { flex: 1; overflow-y: auto; padding: 16px 14px calc(170px + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; align-items: center; }
+  #chat > div { width: 100%; max-width: 640px; }
+  #chat::-webkit-scrollbar { width: 4px; }
+  #chat::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 2px; }
+
+  .welcome { text-align: center; animation: fadeIn 0.5s ease; }
+  .hero-planet { position: relative; height: 140px; margin: 0 -14px 16px; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+  .hero-planet::before { content: ''; position: absolute; bottom: -80%; left: 50%; transform: translateX(-50%); width: 130%; height: 160%; background: radial-gradient(ellipse at 50% 30%, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.05) 30%, transparent 55%); border-radius: 50%; }
+  .hero-planet .hero-content { position: relative; z-index: 2; text-align: center; }
+  .hero-planet .hero-title { font-size: 42px; font-weight: 900; letter-spacing: 2px; background: linear-gradient(180deg, #ffffff 0%, #b0b0b0 60%, #6a6a6a 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; filter: drop-shadow(0 4px 20px rgba(255,255,255,0.25)); line-height: 1; }
+  [data-theme="light"] .hero-planet .hero-title { background: linear-gradient(180deg, #0a0a0a 0%, #555 100%); -webkit-background-clip: text; background-clip: text; }
+  .hero-planet .hero-sub { font-size: 9px; letter-spacing: 4px; color: #b0b0b0; margin-top: 8px; text-transform: uppercase; }
+
+  .hello-card { padding: 16px; background: var(--bg-card); border: 1px solid var(--border-2); border-radius: 14px; text-align: left; margin-bottom: 14px; }
+  .hello-card .h-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+  .hello-card h3 { font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .mode-badge { padding: 5px 10px; background: var(--bg-card-2); border: 1px solid var(--border-2); border-radius: 16px; font-size: 10.5px; color: var(--text); cursor: pointer; white-space: nowrap; }
+  .hello-card p { color: var(--text-muted); font-size: 13px; line-height: 1.55; }
+
+  .role-badge { display: inline-flex; align-items: center; gap: 3px; padding: 2px 8px; border-radius: 10px; font-size: 9.5px; font-weight: 700; letter-spacing: 0.5px; }
+  .role-owner { background: linear-gradient(135deg, rgba(251,191,36,0.2), rgba(251,191,36,0.05)); border: 1px solid rgba(251,191,36,0.5); color: var(--gold); }
+  .role-admin { background: linear-gradient(135deg, rgba(239,68,68,0.2), rgba(239,68,68,0.05)); border: 1px solid rgba(239,68,68,0.5); color: #f87171; }
+  .role-vip { background: linear-gradient(135deg, rgba(168,85,247,0.2), rgba(168,85,247,0.05)); border: 1px solid rgba(168,85,247,0.5); color: #c084fc; }
+  .role-free { background: linear-gradient(135deg, rgba(59,130,246,0.2), rgba(59,130,246,0.05)); border: 1px solid rgba(59,130,246,0.5); color: #60a5fa; }
+
+  .feature-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+  .feature-card { display: flex; align-items: flex-start; gap: 10px; padding: 14px 12px; background: var(--bg-card); border: 1px solid var(--border-2); border-radius: 12px; cursor: pointer; text-align: left; font-family: inherit; color: var(--text); min-width: 0; position: relative; }
+  .feature-card:active { transform: scale(0.97); border-color: var(--accent); }
+  .feature-card[data-locked="1"] { opacity: 0.5; }
+  .feature-card[data-locked="1"]::after { content: '🔒'; position: absolute; top: 8px; right: 8px; font-size: 11px; }
+  .feature-card .f-icon { min-width: 30px; height: 30px; background: var(--bg-card-2); border: 1px solid var(--border-2); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+  .feature-card .f-body { flex: 1; min-width: 0; }
+  .feature-card .f-title { font-size: 12.5px; font-weight: 600; margin-bottom: 3px; display: flex; align-items: center; gap: 3px; }
+  .feature-card .f-title .f-arrow { margin-left: auto; opacity: 0.4; font-size: 11px; }
+  .feature-card .f-desc { font-size: 10.5px; color: var(--text-muted); line-height: 1.4; }
+
+  .msg { padding: 12px 16px; line-height: 1.6; white-space: pre-wrap; word-wrap: break-word; font-size: 14px; animation: bubbleIn 0.25s ease; margin-bottom: 10px; max-width: 85%; border-radius: 14px; }
+  .msg.user { background: var(--bubble-user); color: var(--bubble-user-text); margin-left: auto; width: fit-content; }
+  .msg.ai { background: var(--bubble-ai); color: var(--bubble-ai-text); margin-right: auto; border: 1px solid var(--border); }
+  .msg.err { background: rgba(220,38,38,0.15); color: #fca5a5; border: 1px solid rgba(220,38,38,0.4); }
+  .msg.info { background: transparent; color: var(--text-muted); font-size: 12px; text-align: center; font-style: italic; padding: 6px 0; max-width: 100%; }
+  .msg.typing { background: var(--bubble-ai); color: var(--text-muted); font-style: italic; border: 1px solid var(--border); }
+  .msg.typing::after { content: '...'; animation: dots 1.2s infinite; }
+  @keyframes dots { 0%,20% { content:'.'; } 40% { content:'..'; } 60%,100% { content:'...'; } }
+  @keyframes bubbleIn { from { opacity: 0; transform: scale(0.95) translateY(6px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+  .msg img.chat-img { max-width: 100%; max-height: 300px; border-radius: 10px; display: block; margin-top: 6px; cursor: pointer; }
+
+  .input-footer {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    padding: 8px 12px calc(14px + env(safe-area-inset-bottom, 0px));
+    display: flex; justify-content: center;
+    background: linear-gradient(to top, var(--bg) 70%, transparent);
+    z-index: 5;
+  }
+  .input-wrapper { width: 100%; max-width: 640px; display: flex; flex-direction: column; gap: 8px; }
+
+  .img-preview { display: none; background: var(--bg-input); border: 1px solid var(--border-2); border-radius: 14px; padding: 8px; width: fit-content; position: relative; }
+  .img-preview.show { display: block; }
+  .img-preview img { max-width: 130px; max-height: 130px; border-radius: 9px; display: block; }
+  .img-preview .rm { position: absolute; top: 4px; right: 4px; width: 22px; height: 22px; background: rgba(0,0,0,0.75); color: #fff; border: none; border-radius: 50%; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; line-height: 1; }
+
+  .input-box { display: flex; width: 100%; background: var(--bg-input); border: 1px solid var(--border-2); border-radius: 26px; padding: 5px; align-items: center; gap: 2px; }
+  .input-box:focus-within { border-color: var(--accent); box-shadow: 0 0 18px var(--accent-glow); }
+  .input-box .attach-btn { width: 38px; height: 38px; background: transparent; border: none; color: var(--text-muted); font-size: 17px; cursor: pointer; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .input-box .attach-btn:active { background: var(--bg-card); }
+  #msg { flex: 1; background: transparent; border: none; outline: none; color: var(--text); font-size: 14px; padding: 10px 6px; min-width: 0; }
+  #msg::placeholder { color: var(--text-muted); }
+  .input-box .send-btn { width: 40px; height: 40px; background: var(--bg-card-2); border: 1px solid var(--border-2); color: var(--text); border-radius: 50%; cursor: pointer; font-size: 15px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .input-box .send-btn:active { background: var(--accent); color: var(--bg); }
+
+  .panel { position: fixed; inset: 0; background: var(--bg); z-index: 50; display: none; flex-direction: column; animation: slideUp 0.25s ease; }
+  .panel.show { display: flex; }
+  @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+  .panel-header { padding: 14px 16px; padding-top: calc(14px + env(safe-area-inset-top, 0px)); display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .panel-close { width: 36px; height: 36px; background: transparent; border: 1px solid var(--border-2); border-radius: 50%; color: var(--text); font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .panel-header h2 { font-size: 16px; font-weight: 700; }
+  .panel-header .pcount { margin-left: auto; font-size: 10.5px; color: var(--text-muted); padding: 4px 10px; border: 1px solid var(--border); border-radius: 14px; }
+  .panel-body { flex: 1; overflow-y: auto; padding: 16px; padding-bottom: calc(30px + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; align-items: center; }
+  .panel-inner { width: 100%; max-width: 640px; }
+  .panel-search { width: 100%; padding: 11px 16px; background: var(--bg-card); border: 1px solid var(--border-2); border-radius: 11px; color: var(--text); font-size: 13.5px; outline: none; margin-bottom: 16px; font-family: inherit; }
+  .panel-search:focus { border-color: var(--accent); }
+  .tool-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+  .tool-card { padding: 13px 12px; background: var(--bg-card); border: 1px solid var(--border-2); border-radius: 11px; cursor: pointer; text-align: left; font-family: inherit; color: var(--text); font-size: 12.5px; font-weight: 600; min-height: 44px; display: flex; align-items: center; }
+  .tool-card:active { background: var(--bg-card-2); border-color: var(--accent); transform: scale(0.98); }
+  .panel-title { font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); margin: 16px 0 10px; font-weight: 600; padding-left: 8px; border-left: 3px solid var(--accent); }
+
+  .setting-label { font-size: 11.5px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 8px; display: block; }
+  .theme-options { display: flex; gap: 8px; margin-bottom: 20px; }
+  .theme-opt { flex: 1; padding: 12px 8px; background: var(--bg-card); border: 2px solid var(--border-2); border-radius: 11px; cursor: pointer; text-align: center; color: var(--text); font-size: 12px; font-weight: 500; font-family: inherit; }
+  .theme-opt.active { border-color: var(--accent); background: var(--bg-card-2); }
+  .text-input { width: 100%; padding: 12px 14px; background: var(--bg-card); border: 1px solid var(--border-2); border-radius: 10px; color: var(--text); font-size: 13.5px; outline: none; font-family: inherit; margin-bottom: 16px; resize: vertical; }
+  .text-input:focus { border-color: var(--accent); }
+  .btn-primary { width: 100%; padding: 12px; background: var(--text); color: var(--bg); border: none; border-radius: 11px; font-size: 13.5px; font-weight: 700; cursor: pointer; margin-bottom: 8px; font-family: inherit; }
+  [data-theme="light"] .btn-primary { background: #0a0a0a; color: #fff; }
+  .btn-danger { background: #dc2626 !important; color: #fff !important; }
+  .btn-ghost { background: transparent !important; color: var(--text) !important; border: 1px solid var(--border-2) !important; }
+  .btn-telegram { background: linear-gradient(135deg, #229ED9, #0088cc) !important; color: #fff !important; }
+
+  .locked-box { padding: 14px; background: var(--bg-card); border: 1px dashed var(--border-2); border-radius: 10px; margin-bottom: 16px; text-align: center; color: var(--text-muted); font-size: 12.5px; line-height: 1.6; }
+
+  .account-overlay { position: fixed; inset: 0; background: var(--bg); z-index: 200; display: none; align-items: center; justify-content: center; padding: 20px; padding-top: calc(20px + env(safe-area-inset-top, 0px)); padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px)); overflow-y: auto; }
+  .account-overlay.show { display: flex; }
+  .account-box { width: 100%; max-width: 420px; background: var(--bg-card); border: 1px solid var(--border-2); border-radius: 20px; padding: 28px 24px; text-align: center; margin: auto; }
+  .account-box .logo-top { font-size: 34px; font-weight: 900; letter-spacing: 2px; background: linear-gradient(180deg, #fff 0%, #b0b0b0 60%, #6a6a6a 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 4px; }
+  [data-theme="light"] .account-box .logo-top { background: linear-gradient(180deg, #0a0a0a 0%, #555 100%); -webkit-background-clip: text; background-clip: text; }
+  .account-box .sub { font-size: 11px; color: var(--text-muted); letter-spacing: 3px; text-transform: uppercase; margin-bottom: 24px; }
+  .acc-tabs { display: flex; gap: 6px; margin-bottom: 20px; }
+  .acc-tab { flex: 1; padding: 10px; background: var(--bg); border: 1px solid var(--border-2); border-radius: 10px; color: var(--text-muted); font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
+  .acc-tab.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+  [data-theme="light"] .acc-tab.active { background: #0a0a0a; color: #fff; border-color: #0a0a0a; }
+  .acc-msg { padding: 10px 14px; border-radius: 10px; font-size: 12.5px; margin-bottom: 14px; text-align: left; display: none; }
+  .acc-msg.show { display: block; }
+  .acc-msg.err { background: rgba(220,38,38,0.15); border: 1px solid rgba(220,38,38,0.4); color: #fca5a5; }
+  .acc-msg.ok { background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.4); color: #34d399; }
+  .acc-hint { font-size: 11px; color: var(--text-muted); text-align: left; margin-bottom: 14px; padding-left: 2px; line-height: 1.5; }
+
+  .role-picker { display: flex; gap: 6px; margin-bottom: 16px; }
+  .role-pick { flex: 1; padding: 10px 6px; background: var(--bg); border: 2px solid var(--border-2); border-radius: 10px; cursor: pointer; text-align: center; font-family: inherit; color: var(--text); font-size: 11.5px; font-weight: 600; }
+  .role-pick.active { border-color: var(--accent); background: var(--bg-card-2); }
+  .role-pick .rp-emoji { font-size: 18px; display: block; margin-bottom: 2px; }
+
+  .lightbox { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: none; align-items: center; justify-content: center; z-index: 300; padding: 20px; cursor: zoom-out; }
+  .lightbox.show { display: flex; }
+  .lightbox img { max-width: 100%; max-height: 100%; border-radius: 8px; }
+
+  .profile-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(4px); z-index: 250; display: none; align-items: center; justify-content: center; padding: 20px; }
+  .profile-modal.show { display: flex; }
+  .profile-card { width: 100%; max-width: 380px; background: var(--bg-card); border: 1px solid var(--border-2); border-radius: 20px; padding: 26px 22px; text-align: center; animation: popIn 0.25s ease; max-height: 90vh; overflow-y: auto; }
+  @keyframes popIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+  .profile-card .p-avatar { width: 70px; height: 70px; background: var(--bg-card-2); border: 2px solid var(--border-2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; margin: 0 auto 14px; }
+  .profile-card .p-name { font-size: 19px; font-weight: 700; margin-bottom: 6px; }
+  .profile-card .p-role { display: inline-flex; margin-bottom: 16px; }
+  .profile-card .p-info { display: flex; flex-direction: column; gap: 8px; padding: 14px; background: var(--bg); border-radius: 12px; margin-bottom: 18px; text-align: left; }
+  .profile-card .p-info .pi-row { display: flex; justify-content: space-between; font-size: 12.5px; }
+  .profile-card .p-info .pi-row .pi-k { color: var(--text-muted); }
+  .profile-card .p-info .pi-row .pi-v { font-weight: 600; }
+  .profile-card .p-btn { width: 100%; padding: 12px; border: none; border-radius: 11px; font-size: 13.5px; font-weight: 700; cursor: pointer; margin-bottom: 8px; font-family: inherit; }
+  .profile-card .p-btn-logout { background: #dc2626; color: #fff; }
+  .profile-card .p-btn-tg { background: linear-gradient(135deg, #229ED9, #0088cc); color: #fff; }
+  .profile-card .p-btn-close { background: transparent; color: var(--text); border: 1px solid var(--border-2); }
+
+  @media (min-width: 700px) {
+    .sidebar { width: 80px; padding: 14px 8px; }
+    .nav-item { width: 60px; height: 58px; }
+    .nav-item .nav-icon { font-size: 22px; }
+    .pro-badge { width: 60px; }
+    .side-profile { width: 58px; height: 58px; }
+    #chat { padding: 20px 20px calc(170px + env(safe-area-inset-bottom, 0px)); }
+    .hero-planet .hero-title { font-size: 56px; }
+    .feature-grid { grid-template-columns: repeat(3, 1fr); }
+    .tool-grid { grid-template-columns: repeat(3, 1fr); }
+    .msg { font-size: 14.5px; max-width: 75%; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <aside class="sidebar">
+    <div class="nav-item active" data-tab="chat"><span class="nav-icon">💬</span></div>
+    <div class="nav-item" data-tab="web"><span class="nav-icon">🌐</span></div>
+    <div class="nav-item" data-tab="code"><span class="nav-icon">&lt;/&gt;</span></div>
+    <div class="nav-item" data-tab="file"><span class="nav-icon">📄</span></div>
+    <div class="nav-item" data-tab="vision"><span class="nav-icon">🖼️</span></div>
+    <div class="nav-item" data-tab="writing"><span class="nav-icon">🖋️</span></div>
+    <div class="nav-item" data-tab="voice"><span class="nav-icon">🎤</span></div>
+    <div class="nav-item" data-tab="memory"><span class="nav-icon">🧠</span></div>
+    <div class="nav-item" data-tab="projects"><span class="nav-icon">📁</span></div>
+    <div class="nav-item" data-tab="settings"><span class="nav-icon">⚙️</span></div>
+    <div class="nav-item" id="contactBtn" title="Hubungi Owner"><span class="nav-icon">✈️</span></div>
+
+    <div class="pro-badge" id="proBadge">
+      <div class="crown">👑</div>
+      <div class="pro-text">YZX AI Pro</div>
+      <button class="up-btn" id="upgradeBtn">Upgrade</button>
+    </div>
+
+    <div class="side-profile" id="profileBtn">
+      <span id="profileEmoji">👤</span>
+      <div class="owner-dot" id="profileDot">👑</div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div id="chat">
+      <div class="welcome" id="welcome">
+        <div class="hero-planet">
+          <div class="hero-content">
+            <div class="hero-title">✦ YZX AI</div>
+            <div class="hero-sub">Your AI, Your World</div>
+          </div>
+        </div>
+
+        <div class="hello-card">
+          <div class="h-top">
+            <h3>Halo <span id="helloName">User</span>! 👋 <span id="helloRole" class="role-badge role-free">🆓 FREE</span></h3>
+            <div class="mode-badge">Mode: Default ▾</div>
+          </div>
+          <p id="helloDesc">Aku Yzx AI, asisten AI pribadi kamu. Pilih fitur di bawah atau langsung ketik pertanyaan kamu.</p>
+        </div>
+
+        <div class="feature-grid">
+          <button class="feature-card" data-tab="chat"><div class="f-icon">💬</div><div class="f-body"><div class="f-title">AI Chat <span class="f-arrow">→</span></div><div class="f-desc">Tanya apa saja, kapan saja.</div></div></button>
+          <button class="feature-card" data-tab="web"><div class="f-icon">🌐</div><div class="f-body"><div class="f-title">Web Search <span class="f-arrow">→</span></div><div class="f-desc">Cari info terbaru di internet.</div></div></button>
+          <button class="feature-card" data-tab="code"><div class="f-icon">&lt;/&gt;</div><div class="f-body"><div class="f-title">Code Assistant <span class="f-arrow">→</span></div><div class="f-desc">Buat, jelaskan, perbaiki kode.</div></div></button>
+          <button class="feature-card" data-tab="file"><div class="f-icon">📄</div><div class="f-body"><div class="f-title">File Analyzer <span class="f-arrow">→</span></div><div class="f-desc">Unggah file, dapat ringkasan.</div></div></button>
+          <button class="feature-card" data-tab="vision"><div class="f-icon">🖼️</div><div class="f-body"><div class="f-title">Vision <span class="f-arrow">→</span></div><div class="f-desc">Analisis gambar & foto.</div></div></button>
+          <button class="feature-card" data-tab="writing"><div class="f-icon">🖋️</div><div class="f-body"><div class="f-title">Writing <span class="f-arrow">→</span></div><div class="f-desc">Buat & edit teks kamu.</div></div></button>
+          <button class="feature-card" data-tab="voice"><div class="f-icon">🎤</div><div class="f-body"><div class="f-title">Voice <span class="f-arrow">→</span></div><div class="f-desc">Ngobrol pakai suara.</div></div></button>
+          <button class="feature-card" data-tab="memory"><div class="f-icon">🧠</div><div class="f-body"><div class="f-title">Memory <span class="f-arrow">→</span></div><div class="f-desc">Simpan preferensi penting.</div></div></button>
+          <button class="feature-card" data-tab="projects"><div class="f-icon">📁</div><div class="f-body"><div class="f-title">Projects <span class="f-arrow">→</span></div><div class="f-desc">Kelola chat & pekerjaan.</div></div></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="input-footer">
+      <div class="input-wrapper">
+        <div class="img-preview" id="imgPreview">
+          <button class="rm" id="removeImg">×</button>
+          <img id="previewImg" src="" alt="">
+        </div>
+        <div class="input-box">
+          <button class="attach-btn" id="attachBtn" title="Kirim foto">📎</button>
+          <input type="file" id="fileInput" accept="image/*" style="display:none;">
+          <input id="msg" placeholder="Ketik pesan di sini..." autocomplete="off">
+          <button class="attach-btn" id="micBtn">🎤</button>
+          <button class="send-btn" id="sendBtn">➤</button>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div id="panels-container"></div>
+<div class="lightbox" id="lightbox"><img id="lightboxImg" src=""></div>
+
+<div class="account-overlay" id="accountOverlay">
+  <div class="account-box">
+    <div class="logo-top">✦ YZX AI</div>
+    <div class="sub">Your AI, Your World</div>
+
+    <div class="acc-tabs">
+      <button class="acc-tab active" id="tabLogin">🔐 Login</button>
+      <button class="acc-tab" id="tabRegister">📝 Daftar</button>
+    </div>
+
+    <div class="acc-msg" id="accMsg"></div>
+
+    <div id="formLogin">
+      <label class="setting-label" style="text-align:left;">Username</label>
+      <input type="text" class="text-input" id="loginUser" placeholder="Username" autocomplete="off">
+      <label class="setting-label" style="text-align:left;">Password</label>
+      <input type="password" class="text-input" id="loginPass" placeholder="Password" autocomplete="off">
+      <button class="btn-primary" id="btnLogin">🚀 Login</button>
+    </div>
+
+    <div id="formRegister" style="display:none;">
+      <label class="setting-label" style="text-align:left;">Username</label>
+      <input type="text" class="text-input" id="regUser" placeholder="Username baru" maxlength="20" autocomplete="off">
+      <label class="setting-label" style="text-align:left;">Password</label>
+      <input type="password" class="text-input" id="regPass" placeholder="Password" autocomplete="off">
+      <label class="setting-label" style="text-align:left;">Konfirmasi Password</label>
+      <input type="password" class="text-input" id="regPass2" placeholder="Ulangi password" autocomplete="off">
+
+      <label class="setting-label" style="text-align:left;">Pilih Role</label>
+      <div class="role-picker" id="rolePicker">
+        <button class="role-pick" data-role="free"><span class="rp-emoji">🆓</span>FREE</button>
+        <button class="role-pick" data-role="vip"><span class="rp-emoji">💎</span>VIP</button>
+        <button class="role-pick" data-role="admin"><span class="rp-emoji">🛡️</span>ADMIN</button>
+      </div>
+
+      <button class="btn-primary" id="btnRegister">✅ Daftar</button>
+      <div class="acc-hint">👑 Role <b>Owner</b> cuma bisa dipakai sama Zixx. Role lain bebas pilih.</div>
+    </div>
+  </div>
+</div>
+
+<div class="profile-modal" id="profileModal">
+  <div class="profile-card">
+    <div class="p-avatar" id="pAvatar">👤</div>
+    <div class="p-name" id="pName">-</div>
+    <span class="role-badge role-free" id="pRole">🆓 FREE</span>
+    <div style="height:16px;"></div>
+    <div class="p-info">
+      <div class="pi-row"><span class="pi-k">Username</span><span class="pi-v" id="pUsername">-</span></div>
+      <div class="pi-row"><span class="pi-k">Nama Tampilan</span><span class="pi-v" id="pDisplayName">-</span></div>
+      <div class="pi-row"><span class="pi-k">Role</span><span class="pi-v" id="pRoleName">-</span></div>
+      <div class="pi-row"><span class="pi-k">Status</span><span class="pi-v">🟢 Aktif</span></div>
+    </div>
+    <button class="p-btn p-btn-tg" id="pTgBtn">✈️ Hubungi Owner</button>
+    <button class="p-btn p-btn-logout" id="pLogoutBtn">🚪 Logout</button>
+    <button class="p-btn p-btn-close" id="pCloseBtn">Tutup</button>
+  </div>
+</div>
+
+<script>
+// ============================================
+// ISI API KEY GEMINI LO DI SINI
+// ============================================
+const API_KEY = "AQ.Ab8RN6LijUS_NPxNGBVXkPNt5rW88cmZJlyMsJ4GBtTFA6S56w";
+// ============================================
+
+const TELEGRAM_USERNAME = "ZixxSture";
+const TELEGRAM_LINK = "https://t.me/ZixxSture";
+
+const OWNER_ACCOUNT = {
+  username: "ZixxSuper",
+  password: "ZixxZaxx",
+  role: "owner",
+  displayName: "Zixx"
+};
+
+const ROLES = [
+  { id: "owner", name: "OWNER", emoji: "👑", desc: "Pemilik sistem, akses penuh", cls: "role-owner" },
+  { id: "admin", name: "ADMIN", emoji: "🛡️", desc: "Admin, akses fitur lengkap",  cls: "role-admin" },
+  { id: "vip",   name: "VIP",   emoji: "💎", desc: "VIP, akses fitur lengkap",    cls: "role-vip" },
+  { id: "free",  name: "FREE",  emoji: "🆓", desc: "User gratis, cuma AI Chat",   cls: "role-free" }
+];
+
+// Role yang boleh akses SEMUA fitur
+const FULL_ACCESS_ROLES = ["owner", "admin", "vip"];
+// Role yang boleh akses System Prompt
+const SYSTEM_PROMPT_ROLES = ["owner", "admin", "vip"];
+
+const FREE_FEATURES = ["chat", "settings"];
+
+const DEFAULT_SYSTEM = `Kamu adalah YzxAI, asisten AI pribadi yang ramah, pintar, dan helpful.
+Kamu menjawab dengan bahasa Indonesia santai tapi sopan.
+Kamu membantu user dengan jawaban yang jelas, akurat, dan to the point.
+Kamu jujur — kalau gak tau, bilang gak tau, jangan ngarang.
+Kalau user kirim gambar, analisa isinya dengan teliti dan jelaskan ke user.`;
+
+const PANELS = {
+  web: { title: "🌐 Web Search", groups: {
+    "Pencarian": ["Web Search", "News Search", "Image Search", "Video Search", "Scholar Search"],
+    "Analisa": ["Website Reader", "URL Analyzer", "Fact Checker", "Source Finder", "Article Analyzer"],
+    "Research": ["Deep Research", "Compare Websites", "Research Assistant", "Citation Generator"]
+  }},
+  code: { title: "💻 Code Assistant", groups: {
+    "Generate": ["Code Generator", "HTML/CSS Generator", "API Builder", "Regex Generator", "SQL Query Builder"],
+    "Debug": ["Debugger", "Code Review", "Code Refactor", "Error Explainer", "Performance Optimizer"],
+    "Bahasa": ["Python Assistant", "JavaScript Assistant", "PHP Assistant", "Java Assistant", "C++ Assistant"],
+    "Tools": ["Code Explainer", "Code Converter", "JSON Formatter", "Git Assistant", "Terminal Assistant"]
+  }},
+  file: { title: "📄 File Analyzer", groups: {
+    "Dokumen": ["PDF Reader", "PDF Summarizer", "DOCX Reader", "TXT Reader", "ePub Reader"],
+    "Data": ["CSV Analyzer", "Excel Analyzer", "JSON Analyzer", "XML Parser", "Data Visualizer"],
+    "Proses": ["Document Q&A", "Document Translator", "Text Extractor", "OCR Scanner", "File Converter"]
+  }},
+  vision: { title: "🖼️ Vision", groups: {
+    "Analisa": ["Image Analyzer", "Object Detection", "Screenshot Analyzer", "Chart Analyzer", "Diagram Analyzer"],
+    "OCR": ["OCR Image", "Text from Image", "Handwriting Reader", "Sign Reader", "Receipt Scanner"],
+    "Lainnya": ["Image Captioner", "Image Describer", "Color Analyzer", "Face Analyzer", "Scene Analyzer"]
+  }},
+  writing: { title: "🖋️ Writing Assistant", groups: {
+    "Tulis": ["AI Writer", "Blog Generator", "Article Writer", "Email Writer", "Essay Writer"],
+    "Kreatif": ["Story Generator", "Poem Generator", "Script Writer", "Caption Generator", "Copywriting"],
+    "Edit": ["Grammar Checker", "Spell Checker", "Paraphraser", "Summarizer", "Translator"]
+  }},
+  voice: { title: "🎤 Voice", groups: {
+    "Voice": ["Voice Chat", "Voice Commands", "Voice Notes", "Voice Translation"],
+    "Audio": ["Speech-to-Text", "Text-to-Speech", "Audio Transcription", "Meeting Transcriber", "Pronunciation Helper"]
+  }},
+  memory: { title: "🧠 Memory", groups: {
+    "Info": ["Lihat Memory", "Edit Memory", "Hapus Memory", "Export Memory", "Import Memory"],
+    "Preferensi": ["Preferensi Bahasa", "Preferensi Tema", "Custom Instructions", "AI Personas"]
+  }},
+  projects: { title: "📁 Projects", groups: {
+    "Proyek": ["Buat Proyek Baru", "Lihat Semua Proyek", "Website Portofolio", "Python Project", "Research AI", "Tugas Kuliah"],
+    "Organisir": ["Folders", "Favorites", "Pinned Chats", "Archive", "Search Chats"]
+  }}
+};
+
+const chat = document.getElementById("chat");
+const input = document.getElementById("msg");
+const sendBtn = document.getElementById("sendBtn");
+const welcome = document.getElementById("welcome");
+const panelsContainer = document.getElementById("panels-container");
+const fileInput = document.getElementById("fileInput");
+const attachBtn = document.getElementById("attachBtn");
+const imgPreview = document.getElementById("imgPreview");
+const previewImg = document.getElementById("previewImg");
+const removeImgBtn = document.getElementById("removeImg");
+const lightbox = document.getElementById("lightbox");
+const lightboxImg = document.getElementById("lightboxImg");
+const accountOverlay = document.getElementById("accountOverlay");
+const accMsg = document.getElementById("accMsg");
+const profileModal = document.getElementById("profileModal");
+
+let history = [];
+let firstMsg = true;
+let cooldown = false;
+let validModels = [];
+let attachedImage = null;
+let settings = { theme: "dark", system: DEFAULT_SYSTEM };
+let user = null;
+let selectedRegisterRole = "free";
+
+// ============ STORAGE ============
+function getUsers() {
+  try { const s = localStorage.getItem("yzxai_users"); if (s) return JSON.parse(s); } catch(e) {}
+  return [];
+}
+function saveUsers(users) { localStorage.setItem("yzxai_users", JSON.stringify(users)); }
+function findUser(username) { return getUsers().find(u => u.username.toLowerCase() === username.toLowerCase()); }
+(function initOwner() {
+  const users = getUsers();
+  const idx = users.findIndex(u => u.username === OWNER_ACCOUNT.username);
+  if (idx === -1) {
+    users.push(OWNER_ACCOUNT);
+    saveUsers(users);
+  } else {
+    if (!users[idx].displayName) {
+      users[idx].displayName = OWNER_ACCOUNT.displayName;
+      saveUsers(users);
+    }
+  }
+})();
+
+// ============ SESSION ============
+function loadSession() {
+  try {
+    const s = localStorage.getItem("yzxai_session");
+    if (s) {
+      user = JSON.parse(s);
+      const dbUser = findUser(user.username);
+      if (dbUser && dbUser.displayName) user.displayName = dbUser.displayName;
+      return true;
+    }
+  } catch(e) {}
+  return false;
+}
+function saveSession() { if (user) localStorage.setItem("yzxai_session", JSON.stringify(user)); }
+function clearSession() { localStorage.removeItem("yzxai_session"); user = null; }
+
+function getRole(roleId) { return ROLES.find(r => r.id === roleId) || ROLES[3]; }
+function isOwner() { return user && user.role === "owner"; }
+function hasFullAccess() { return user && FULL_ACCESS_ROLES.includes(user.role); }
+function canEditSystemPrompt() { return user && SYSTEM_PROMPT_ROLES.includes(user.role); }
+function getUserDisplayName() {
+  if (!user) return "User";
+  return user.displayName || user.username;
+}
+
+function applyUser() {
+  if (!user) return;
+  const r = getRole(user.role);
+  document.getElementById("helloName").textContent = getUserDisplayName();
+  const helloRole = document.getElementById("helloRole");
+  helloRole.textContent = r.emoji + " " + r.name;
+  helloRole.className = "role-badge " + r.cls;
+  document.getElementById("profileEmoji").textContent = r.emoji;
+  document.getElementById("profileDot").textContent = r.emoji;
+  document.getElementById("profileDot").style.display = "flex";
+
+  const desc = document.getElementById("helloDesc");
+  if (hasFullAccess()) {
+    desc.textContent = "Aku Yzx AI, asisten AI pribadi kamu. Semua fitur udah kebuka buat kamu. Mau ngapain hari ini? 😈";
+  } else {
+    desc.textContent = "Aku Yzx AI. Role kamu FREE, cuma bisa pake AI Chat. Fitur lain 🔒 khusus VIP/Admin/Owner. Mau upgrade? Klik ✈️ Hubungi Owner.";
+  }
+
+  const full = hasFullAccess();
+  document.querySelectorAll(".nav-item").forEach(el => {
+    const tab = el.dataset.tab;
+    if (!tab) return;
+    if (full || FREE_FEATURES.includes(tab)) {
+      el.style.opacity = "1";
+      el.removeAttribute("data-locked");
+    } else {
+      el.style.opacity = "0.4";
+      el.setAttribute("data-locked", "1");
+    }
+  });
+  document.querySelectorAll(".feature-card[data-tab]").forEach(el => {
+    const tab = el.dataset.tab;
+    if (full || FREE_FEATURES.includes(tab)) {
+      el.style.opacity = "1";
+      el.removeAttribute("data-locked");
+    } else {
+      el.style.opacity = "0.5";
+      el.setAttribute("data-locked", "1");
+    }
+  });
+}
+
+function doLogout() {
+  clearSession();
+  document.body.style.transition = "opacity 0.3s";
+  document.body.style.opacity = "0";
+  setTimeout(() => location.reload(), 300);
+}
+
+// ============ SETTINGS ============
+function loadSettings() {
+  try { const s = localStorage.getItem("yzxai_settings_v17"); if (s) settings = { ...settings, ...JSON.parse(s) }; } catch(e) {}
+}
+function saveSettingsToStorage() { localStorage.setItem("yzxai_settings_v17", JSON.stringify(settings)); }
+function applyTheme() {
+  let mode = settings.theme;
+  if (mode === "auto") mode = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  document.documentElement.setAttribute("data-theme", mode);
+}
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+  if (settings.theme === "auto") applyTheme();
+});
+
+loadSettings();
+applyTheme();
+
+if (loadSession()) {
+  applyUser();
+  accountOverlay.classList.remove("show");
+} else {
+  accountOverlay.classList.add("show");
+}
+
+// ============ ACC MSG ============
+function showAccMsg(text, type) {
+  accMsg.textContent = text;
+  accMsg.className = "acc-msg show " + type;
+}
+function hideAccMsg() { accMsg.className = "acc-msg"; }
+
+document.getElementById("tabLogin").addEventListener("click", () => {
+  document.getElementById("tabLogin").classList.add("active");
+  document.getElementById("tabRegister").classList.remove("active");
+  document.getElementById("formLogin").style.display = "block";
+  document.getElementById("formRegister").style.display = "none";
+  hideAccMsg();
+});
+document.getElementById("tabRegister").addEventListener("click", () => {
+  document.getElementById("tabRegister").classList.add("active");
+  document.getElementById("tabLogin").classList.remove("active");
+  document.getElementById("formLogin").style.display = "none";
+  document.getElementById("formRegister").style.display = "block";
+  hideAccMsg();
+});
+
+// ============ ROLE PICKER ============
+function renderRolePicker() {
+  document.querySelectorAll("#rolePicker .role-pick").forEach(b => {
+    b.classList.toggle("active", b.dataset.role === selectedRegisterRole);
+    b.onclick = () => {
+      selectedRegisterRole = b.dataset.role;
+      renderRolePicker();
+    };
+  });
+}
+renderRolePicker();
+
+// ============ LOGIN ============
+document.getElementById("btnLogin").addEventListener("click", () => {
+  const u = document.getElementById("loginUser").value.trim();
+  const p = document.getElementById("loginPass").value;
+  if (!u || !p) { showAccMsg("❌ Username & password wajib diisi.", "err"); return; }
+  const found = findUser(u);
+  if (!found || found.password !== p) { showAccMsg("❌ Username atau password salah.", "err"); return; }
+  user = { username: found.username, role: found.role, displayName: found.displayName || found.username };
+  saveSession();
+  applyUser();
+  accountOverlay.classList.remove("show");
+  showAccMsg("✅ Login berhasil!", "ok");
+});
+
+// ============ REGISTER ============
+document.getElementById("btnRegister").addEventListener("click", () => {
+  const u = document.getElementById("regUser").value.trim();
+  const p = document.getElementById("regPass").value;
+  const p2 = document.getElementById("regPass2").value;
+  if (!u || !p) { showAccMsg("❌ Username & password wajib diisi.", "err"); return; }
+  if (u.length < 3) { showAccMsg("❌ Username minimal 3 karakter.", "err"); return; }
+  if (p.length < 4) { showAccMsg("❌ Password minimal 4 karakter.", "err"); return; }
+  if (p !== p2) { showAccMsg("❌ Konfirmasi password gak cocok.", "err"); return; }
+  if (findUser(u)) { showAccMsg("❌ Username udah dipakai, coba yang lain.", "err"); return; }
+  if (u.toLowerCase() === OWNER_ACCOUNT.username.toLowerCase()) { showAccMsg("❌ Username ini udah dipakai.", "err"); return; }
+  const users = getUsers();
+  users.push({ username: u, password: p, role: selectedRegisterRole, displayName: u });
+  saveUsers(users);
+  user = { username: u, role: selectedRegisterRole, displayName: u };
+  saveSession();
+  applyUser();
+  accountOverlay.classList.remove("show");
+  showAccMsg("✅ Akun berhasil dibuat! Role: " + getRole(selectedRegisterRole).name, "ok");
+});
+
+// ============ RENDER PANELS ============
+function renderPanels() {
+  let html = "";
+  for (const [key, data] of Object.entries(PANELS)) {
+    let total = 0;
+    let bodyHtml = '<input class="panel-search" placeholder="🔍 Cari fitur..." oninput="filterPanel(this, \'' + key + '\')">';
+    for (const [groupName, items] of Object.entries(data.groups)) {
+      bodyHtml += '<div class="panel-title">' + groupName + '</div><div class="tool-grid">';
+      for (const item of items) { total++; bodyHtml += '<button class="tool-card" data-tool="' + item.replace(/"/g,'&quot;') + '">' + item + '</button>'; }
+      bodyHtml += '</div>';
+    }
+    html += '<div class="panel" id="panel-' + key + '"><div class="panel-header"><button class="panel-close">←</button><h2>' + data.title + '</h2><span class="pcount">' + total + ' fitur</span></div><div class="panel-body"><div class="panel-inner">' + bodyHtml + '</div></div></div>';
+  }
+
+  // System Prompt: cuma buat Owner/Admin/VIP
+  let promptHtml = "";
+  if (canEditSystemPrompt()) {
+    promptHtml = '<label class="setting-label">🧠 System Prompt</label><textarea class="text-input" id="setPrompt" rows="6">' + settings.system + '</textarea>';
+  } else {
+    promptHtml = '<label class="setting-label">🧠 System Prompt 🔒</label><div class="locked-box">Fitur ini cuma bisa diakses sama <b>👑 OWNER</b>, <b>🛡️ ADMIN</b>, dan <b>💎 VIP</b>.<br><br>Mau akses? Hubungi Owner di Telegram.</div>';
+  }
+
+  html += '<div class="panel" id="panel-settings"><div class="panel-header"><button class="panel-close">←</button><h2>⚙️ Pengaturan</h2></div><div class="panel-body"><div class="panel-inner">' +
+    '<label class="setting-label">🎨 Tema</label><div class="theme-options"><button class="theme-opt" data-mode="dark">🌙 Gelap</button><button class="theme-opt" data-mode="light">☀️ Cerah</button><button class="theme-opt" data-mode="auto">✨ Auto</button></div>' +
+    '<label class="setting-label">✏️ Nama Tampilan</label><input type="text" class="text-input" id="setDisplayName" value="' + (user ? (user.displayName || user.username) : "-") + '" maxlength="20" placeholder="Nama tampilan">' +
+    '<label class="setting-label">👤 Username</label><input type="text" class="text-input" value="' + (user ? user.username : "-") + '" disabled>' +
+    '<label class="setting-label">👑 Role</label><input type="text" class="text-input" value="' + (user ? getRole(user.role).emoji + " " + getRole(user.role).name : "-") + '" disabled>' +
+    promptHtml +
+    '<button class="btn-primary" id="saveSet">💾 Simpan Pengaturan</button>' +
+    '<button class="btn-primary btn-telegram" id="tgContactBtn">✈️ Hubungi Owner di Telegram</button>' +
+    '<button class="btn-primary btn-danger" id="resetChat">🗑️ Hapus Riwayat Chat</button>' +
+    '<button class="btn-primary btn-ghost" id="logoutBtn">🚪 Logout</button>' +
+    '</div></div></div>';
+  panelsContainer.innerHTML = html;
+
+  document.querySelectorAll(".tool-card[data-tool]").forEach(el => {
+    el.addEventListener("click", () => { closePanels(); input.value = "Pakai fitur " + el.dataset.tool + ": "; input.focus(); });
+  });
+  document.querySelectorAll(".panel-close").forEach(b => b.addEventListener("click", closePanels));
+
+  document.querySelectorAll(".theme-opt").forEach(b => {
+    b.classList.toggle("active", b.dataset.mode === settings.theme);
+    b.addEventListener("click", () => {
+      settings.theme = b.dataset.mode;
+      saveSettingsToStorage();
+      applyTheme();
+      document.querySelectorAll(".theme-opt").forEach(x => x.classList.toggle("active", x.dataset.mode === settings.theme));
+    });
+  });
+
+  const saveBtn = document.getElementById("saveSet");
+  if (saveBtn) saveBtn.addEventListener("click", () => {
+    // Simpan system prompt cuma kalo punya akses
+    const promptEl = document.getElementById("setPrompt");
+    if (promptEl) {
+      settings.system = promptEl.value.trim() || DEFAULT_SYSTEM;
+      saveSettingsToStorage();
+    }
+
+    const newName = document.getElementById("setDisplayName").value.trim();
+    if (newName && user) {
+      user.displayName = newName;
+      saveSession();
+      const users = getUsers();
+      const idx = users.findIndex(u => u.username.toLowerCase() === user.username.toLowerCase());
+      if (idx !== -1) {
+        users[idx].displayName = newName;
+        saveUsers(users);
+      }
+      applyUser();
+    }
+
+    closePanels();
+    chat.innerHTML += '<div class="msg info">✅ Pengaturan disimpan.</div>';
+    chat.scrollTop = chat.scrollHeight;
+  });
+
+  const tgBtn = document.getElementById("tgContactBtn");
+  if (tgBtn) tgBtn.addEventListener("click", () => {
+    if (isOwner()) { alert("✈️ Ini Telegram lo sendiri, Tuan! 😈"); return; }
+    window.open(TELEGRAM_LINK, "_blank");
+  });
+
+  const resetBtn = document.getElementById("resetChat");
+  if (resetBtn) resetBtn.addEventListener("click", () => {
+    if (!confirm("Hapus semua riwayat chat?")) return;
+    history = []; firstMsg = true;
+    closePanels();
+    location.reload();
+  });
+
+  const logoutBtn = document.getElementById("logoutBtn");
+  if (logoutBtn) logoutBtn.addEventListener("click", () => {
+    if (confirm("🚪 Yakin mau logout, Tuan?")) doLogout();
+  });
+}
+renderPanels();
+
+function filterPanel(inputEl, key) {
+  const q = inputEl.value.toLowerCase();
+  document.querySelectorAll('#panel-' + key + ' .tool-card').forEach(c => {
+    c.style.display = c.textContent.toLowerCase().includes(q) ? "" : "none";
+  });
+}
+
+// ============ PANEL SWITCHER ============
+function canAccessFeature(tab) {
+  if (!user) return false;
+  if (hasFullAccess()) return true;
+  return FREE_FEATURES.includes(tab);
+}
+
+function openPanel(name) {
+  document.querySelectorAll(".panel").forEach(p => p.classList.remove("show"));
+  const el = document.getElementById("panel-" + name);
+  if (el) el.classList.add("show");
+  document.querySelectorAll(".nav-item").forEach(n => n.classList.toggle("active", n.dataset.tab === name));
+}
+function closePanels() {
+  document.querySelectorAll(".panel").forEach(p => p.classList.remove("show"));
+  document.querySelectorAll(".nav-item").forEach(n => n.classList.toggle("active", n.dataset.tab === "chat"));
+}
+
+function handleNavClick(tab) {
+  if (!user) { accountOverlay.classList.add("show"); return; }
+  if (tab === "chat") { closePanels(); input.focus(); return; }
+  if (canAccessFeature(tab)) {
+    openPanel(tab);
+  } else {
+    showLockedAlert();
+  }
+}
+
+function showLockedAlert() {
+  const mau = confirm(
+    "🔒 FITUR TERKUNCI\n" +
+    "━━━━━━━━━━━━━━━━━━\n\n" +
+    "Fitur ini cuma bisa dipake sama 👑 OWNER, 🛡️ ADMIN, dan 💎 VIP.\n\n" +
+    "Role lo saat ini: 🆓 FREE\n" +
+    "Akses yang lo dapet: 💬 AI Chat + ⚙️ Settings\n\n" +
+    "━━━━━━━━━━━━━━━━━━\n" +
+    "Mau upgrade role? Klik OK buat chat Owner di Telegram."
+  );
+  if (mau) window.open(TELEGRAM_LINK, "_blank");
+}
+
+document.querySelectorAll(".nav-item").forEach(item => {
+  if (!item.dataset.tab) return;
+  item.addEventListener("click", () => handleNavClick(item.dataset.tab));
+});
+document.querySelectorAll(".feature-card[data-tab]").forEach(card => {
+  card.addEventListener("click", () => {
+    const tab = card.dataset.tab;
+    if (tab === "chat") { input.focus(); return; }
+    handleNavClick(tab);
+  });
+});
+
+// ============ CONTACT ============
+document.getElementById("contactBtn").addEventListener("click", () => {
+  if (isOwner()) { alert("✈️ Ini Telegram lo sendiri, Tuan! 😈"); return; }
+  const mau = confirm("✈️ HUBUNGI OWNER\n\nMau chat Owner di Telegram buat upgrade role?");
+  if (mau) window.open(TELEGRAM_LINK, "_blank");
+});
+
+// ============ PRO & PROFILE ============
+document.getElementById("upgradeBtn").addEventListener("click", () => {
+  if (!user) return;
+  const r = getRole(user.role);
+  if (hasFullAccess()) {
+    alert("👑 YZX AI Pro\n\nRole lo: " + r.emoji + " " + r.name + "\n\nLo udah punya akses premium penuh, Tuan! 😈");
+  } else {
+    const mau = confirm(
+      "👑 UPGRADE ROLE\n" +
+      "━━━━━━━━━━━━━━━━━━\n\n" +
+      "Role lo: " + r.emoji + " " + r.name + "\n" +
+      "Akses: 💬 AI Chat + ⚙️ Settings\n\n" +
+      "━━━━━━━━━━━━━━━━━━\n" +
+      "Mau upgrade biar bisa akses semua fitur?\n\n" +
+      "Klik OK buat chat Owner di Telegram."
+    );
+    if (mau) window.open(TELEGRAM_LINK, "_blank");
+  }
+});
+
+document.getElementById("profileBtn").addEventListener("click", () => {
+  if (!user) return;
+  const r = getRole(user.role);
+  document.getElementById("pAvatar").textContent = r.emoji;
+  document.getElementById("pName").textContent = getUserDisplayName();
+  document.getElementById("pUsername").textContent = user.username;
+  document.getElementById("pDisplayName").textContent = getUserDisplayName();
+  document.getElementById("pRoleName").textContent = r.emoji + " " + r.name;
+  const pRole = document.getElementById("pRole");
+  pRole.textContent = r.emoji + " " + r.name;
+  pRole.className = "role-badge " + r.cls;
+
+  const tgBtn = document.getElementById("pTgBtn");
+  if (hasFullAccess()) tgBtn.style.display = "none";
+  else tgBtn.style.display = "block";
+
+  profileModal.classList.add("show");
+});
+
+document.getElementById("pCloseBtn").addEventListener("click", () => profileModal.classList.remove("show"));
+document.getElementById("pLogoutBtn").addEventListener("click", () => {
+  if (confirm("🚪 Yakin mau logout, Tuan?")) doLogout();
+});
+document.getElementById("pTgBtn").addEventListener("click", () => {
+  window.open(TELEGRAM_LINK, "_blank");
+});
+profileModal.addEventListener("click", e => { if (e.target === profileModal) profileModal.classList.remove("show"); });
+
+// ============ FOTO ============
+attachBtn.addEventListener("click", () => fileInput.click());
+fileInput.addEventListener("change", e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  if (!f.type.startsWith("image/")) { alert("Cuma gambar ya Tuan."); return; }
+  if (f.size > 5 * 1024 * 1024) { alert("Maks 5MB ya Tuan."); return; }
+  const reader = new FileReader();
+  reader.onload = ev => {
+    attachedImage = { data: ev.target.result, mime: f.type };
+    previewImg.src = ev.target.result;
+    imgPreview.classList.add("show");
+  };
+  reader.readAsDataURL(f);
+  fileInput.value = "";
+});
+removeImgBtn.addEventListener("click", () => { attachedImage = null; imgPreview.classList.remove("show"); });
+lightbox.addEventListener("click", () => lightbox.classList.remove("show"));
+window.openLightbox = function(src) { lightboxImg.src = src; lightbox.classList.add("show"); };
+
+document.getElementById("micBtn").addEventListener("click", () => {
+  input.value = "Saya mau ngobrol pakai suara";
+  input.focus();
+});
+
+// ============ LOAD MODEL ============
+async function loadModels() {
+  try {
+    const res = await fetch("https://generativelanguage.googleapis.com/v1beta/models?key=" + API_KEY);
+    const data = await res.json();
+    if (!data.models) return;
+    validModels = data.models
+      .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes("generateContent"))
+      .map(m => m.name.replace("models/", ""))
+      .sort((a, b) => {
+        const sA = (a.includes("flash") ? 100 : 0) + (a.includes("2.5") ? 20 : a.includes("2.0") ? 10 : 0);
+        const sB = (b.includes("flash") ? 100 : 0) + (b.includes("2.5") ? 20 : b.includes("2.0") ? 10 : 0);
+        return sB - sA;
+      });
+  } catch (e) { console.warn(e); }
+}
+async function cobaModel(model, contents) {
+  const url = "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent?key=" + API_KEY;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ contents })
+  });
+  return { status: res.status, data: await res.json() };
+}
+
+// ============ KIRIM ============
+async function kirim() {
+  if (!user) { accountOverlay.classList.add("show"); return; }
+  if (cooldown) {
+    chat.innerHTML += '<div class="msg info">⏳ Tunggu bentar ya Tuan.</div>';
+    chat.scrollTop = chat.scrollHeight;
+    return;
+  }
+  const text = input.value.trim();
+  if (!text && !attachedImage) return;
+
+  const imgToSend = attachedImage;
+  input.value = "";
+  attachedImage = null;
+  imgPreview.classList.remove("show");
+  sendBtn.disabled = true;
+
+  if (firstMsg) { welcome.remove(); firstMsg = false; }
+
+  let userBubble = '<div class="msg user">';
+  if (text) userBubble += esc(text);
+  if (imgToSend) userBubble += '<img class="chat-img" src="' + imgToSend.data + '" onclick="openLightbox(this.src)">';
+  userBubble += '</div>';
+  chat.innerHTML += userBubble;
+  chat.scrollTop = chat.scrollHeight;
+
+  const typing = document.createElement("div");
+  typing.className = "msg ai typing";
+  typing.textContent = "YzxAI lagi mikir";
+  chat.appendChild(typing);
+  chat.scrollTop = chat.scrollHeight;
+
+  if (validModels.length === 0) await loadModels();
+
+  const roleInfo = getRole(user.role);
+  const sysWithUser = settings.system + "\n\nUser saat ini: " + getUserDisplayName() + " (username: " + user.username + ", Role: " + roleInfo.name + ").";
+
+  const contents = [
+    { role: "user", parts: [{ text: sysWithUser }] },
+    { role: "model", parts: [{ text: "Oke, siap." }] }
+  ];
+  for (const h of history) contents.push(h);
+
+  const newParts = [];
+  if (text) newParts.push({ text: text });
+  if (imgToSend) newParts.push({ inline_data: { mime_type: imgToSend.mime, data: imgToSend.data.split(",")[1] } });
+  contents.push({ role: "user", parts: newParts });
+
+  let reply = null, lastError = "", limitHit = false;
+  const modelsToTry = validModels.length > 0 ? validModels : ["gemini-2.5-flash", "gemini-2.0-flash"];
+
+  for (const model of modelsToTry) {
+    try {
+      const { status, data } = await cobaModel(model, contents);
+      if (data && data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0]) {
+        reply = data.candidates[0].content.parts[0].text;
+        const histText = text || "[gambar]";
+        history.push({ role: "user", parts: [{ text: histText }] });
+        history.push({ role: "model", parts: [{ text: reply }] });
+        if (history.length > 20) history = history.slice(-20);
+        break;
+      } else if (data && data.error) {
+        lastError = data.error.message;
+        if (status === 429 || (data.error.message && data.error.message.toLowerCase().includes("quota"))) limitHit = true;
+      }
+    } catch (e) { lastError = e.message; }
+  }
+  typing.remove();
+
+  if (reply) {
+    chat.innerHTML += '<div class="msg ai">' + esc(reply) + '</div>';
+  } else if (limitHit) {
+    cooldown = true;
+    let sisa = 15;
+    chat.innerHTML += '<div class="msg err">⏳ Kuota API abis Tuan. Tunggu <b>' + sisa + ' detik</b>...</div>';
+    const timer = setInterval(() => {
+      sisa--;
+      const last = chat.querySelector(".msg.err:last-of-type");
+      if (last) last.innerHTML = '⏳ Kuota API abis Tuan. Tunggu <b>' + sisa + ' detik</b>...';
+      if (sisa <= 0) {
+        clearInterval(timer); cooldown = false;
+        if (last) { last.className = "msg info"; last.innerHTML = '✅ Udah bisa chat lagi Tuan!'; }
+        sendBtn.disabled = false; input.focus();
+      }
+    }, 1000);
+    return;
+  } else {
+    chat.innerHTML += '<div class="msg ai err">❌ Gagal konek AI.\nError: ' + esc(lastError) + '</div>';
+  }
+  chat.scrollTop = chat.scrollHeight;
+  sendBtn.disabled = false;
+  input.focus();
+}
+
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+
+// ============ EVENT ============
+sendBtn.addEventListener("click", kirim);
+input.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); kirim(); } });
+
+loadModels();
+input.focus();
+</script>
+</body>
+</html>
